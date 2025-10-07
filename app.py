@@ -3,8 +3,6 @@ import yt_dlp
 import re
 import os
 import json
-import time
-import random
 import urllib.request
 
 app = Flask(__name__)
@@ -30,13 +28,8 @@ def transcribe():
         video_id = extract_video_id(youtube_url)
         full_url = f"https://www.youtube.com/watch?v={video_id}"
 
-        # random user agent
-        user_agents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-            "Mozilla/5.0 (X11; Linux x86_64)",
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)"
-        ]
+        # נתיב לקובץ העוגיות (שנמצא בריפו שלך או נפרס ברנדר)
+        cookie_path = os.path.join(os.getcwd(), "cookies.txt")
 
         ydl_opts = {
             'skip_download': True,
@@ -46,11 +39,8 @@ def transcribe():
             'subtitleslangs': ['en', 'he'],
             'quiet': True,
             'no_warnings': True,
-            'http_headers': {'User-Agent': random.choice(user_agents)}
+            'cookiefile': cookie_path
         }
-
-        # delay between requests
-        time.sleep(random.uniform(1.5, 3.5))
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(full_url, download=False)
@@ -108,5 +98,4 @@ def transcribe():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 5001))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=5001, debug=False)
