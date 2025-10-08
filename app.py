@@ -6,41 +6,60 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return jsonify({"message": "YouTube Transcriber API is running!"})
+    return jsonify({"message": "YouTube Transcriber API is running"})
+
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
     data = request.get_json()
-    youtube_url = data.get('youtube_url')
+    youtube_url = data.get("youtube_url")
 
     if not youtube_url:
-        return jsonify({"error": "Missing 'youtube_url' in request body"}), 400
+        return jsonify({"error": "Missing 'youtube_url' in request"}), 400
 
-    # הגדרות yt-dlp כולל cookies.txt מתוך Render
-    ydl_opts = {
-        "cookies": "/etc/secrets/cookies.txt",  # ← הנתיב שבו Render שומר את הקובץ הסודי
-        "quiet": True,
-        "skip_download": True,
-        "writeinfojson": False,
-        "writesubtitles": True,
-        "subtitleslangs": ["en"],
-    }
+    # נתיב לקובץ העוגיות של Render (אם קיים)
+    cookies_path = "/etc/secrets/cookies.txt"
+
+    # נוודא שהקובץ קיים לפני שנשתמש בו
+    if os.path.exists(cookies_path):
+        ydl_opts = {
+            "quiet": True,
+            "skip_download": True,
+            "writesubtitles": True,
+            "subtitleslangs": ["en"],
+            "writeinfojson": False,
+            "cookies": cookies_path
+        }
+    else:
+        ydl_opts = {
+            "quiet": True,
+            "skip_download": True,
+            "writesubtitles": True,
+            "subtitleslangs": ["en"],
+            "writeinfojson": False
+        }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(youtube_url, download=False)
-            subtitles = info.get("subtitles") or {}
-            automatic_captions = info.get("automatic_captions") or {}
-            title = info.get("title", "Unknown")
+            subtitles = info.get("subtitles", {})
+            automatic_captions = info.get("automatic_captions", {})
 
+            if not subtitles and not automatic_captions:
+                return jsonify({"error": "No subtitles found for this video"}), 404
+
+            available = subtitles or automatic_captions
+            langs = list(available.keys())
             return jsonify({
-                "title": title,
-                "subtitles": subtitles,
-                "automatic_captions": automatic_captions
+                "video_title": info.get("title"),
+                "video_id": info.get("id"),
+                "available_languages": langs,
+                "status": "success"
             })
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(host='0.0.0.0', port=5000)
