@@ -19,7 +19,7 @@ def transcribe():
 
     # נתיב לקובץ העוגיות של Render (אם קיים)
     cookies_path = "/etc/secrets/cookies.txt"
-
+print(f"[DEBUG] Checking if cookies file exists at {cookies_path}: {os.path.exists(cookies_path)}")
     # נוודא שהקובץ קיים לפני שנשתמש בו
     if os.path.exists(cookies_path):
         ydl_opts = {
